@@ -104,7 +104,7 @@ const Library = () => {
                 </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 {liturgicalMoments.map((moment) => (
                   <SelectItem key={moment} value={moment}>
                     {moment}
