@@ -42,10 +42,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { v4 as uuidv4 } from "uuid";
 
 const Library = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredMusic, setFilteredMusic] = useState<Music[]>(mockMusic);
+  const [allMusic, setAllMusic] = useState<Music[]>([]);
+  const [filteredMusic, setFilteredMusic] = useState<Music[]>([]);
   const [selectedMoment, setSelectedMoment] = useState<string>("");
   const [sortField, setSortField] = useState<string>("title");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -53,6 +55,8 @@ const Library = () => {
   const [selectedPlaylist, setSelectedPlaylist] = useState<string>("");
   const [selectedMusicId, setSelectedMusicId] = useState<string>("");
   const [showAddToPlaylist, setShowAddToPlaylist] = useState<boolean>(false);
+  const [newPlaylistName, setNewPlaylistName] = useState<string>("");
+  const [showNewPlaylistInput, setShowNewPlaylistInput] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const location = useLocation();
@@ -60,6 +64,36 @@ const Library = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Carregar músicas do mockMusic e do localStorage
+    const loadMusic = () => {
+      // Carregar músicas do localStorage
+      const savedMusic = localStorage.getItem("userMusic");
+      const userMusic = savedMusic ? JSON.parse(savedMusic) : [];
+      
+      // Combinar com as músicas de exemplo
+      const combinedMusic = [...mockMusic, ...userMusic];
+      
+      // Converter datas para objetos Date
+      const processedMusic = combinedMusic.map(music => ({
+        ...music,
+        dateAdded: new Date(music.dateAdded)
+      }));
+      
+      setAllMusic(processedMusic);
+      setFilteredMusic(processedMusic);
+    };
+    
+    // Carregar playlists do localStorage
+    const loadPlaylists = () => {
+      const savedPlaylists = localStorage.getItem("playlists");
+      if (savedPlaylists) {
+        setPlaylists(JSON.parse(savedPlaylists));
+      }
+    };
+    
+    loadMusic();
+    loadPlaylists();
+    
     // Get playlist ID from URL if present
     const params = new URLSearchParams(location.search);
     const playlistId = params.get('selectForPlaylist');
@@ -67,18 +101,12 @@ const Library = () => {
       setSelectedPlaylist(playlistId);
       setShowAddToPlaylist(true);
     }
-
-    // Load playlists from localStorage
-    const savedPlaylists = localStorage.getItem("playlists");
-    if (savedPlaylists) {
-      setPlaylists(JSON.parse(savedPlaylists));
-    }
   }, [location]);
 
   // Get all unique liturgical moments from the music data
   const liturgicalMoments = Array.from(
     new Set(
-      mockMusic
+      allMusic
         .flatMap((music) => music.liturgicalMoment || [])
         .filter(Boolean)
     )
@@ -98,7 +126,7 @@ const Library = () => {
   };
 
   const applyFilters = (term: string, moment: string) => {
-    let result = [...mockMusic];
+    let result = [...allMusic];
 
     // Apply search term filter
     if (term) {
@@ -124,7 +152,7 @@ const Library = () => {
   const clearFilters = () => {
     setSearchTerm("");
     setSelectedMoment("");
-    setFilteredMusic(mockMusic);
+    setFilteredMusic(allMusic);
     setCurrentPage(1);
   };
   
@@ -166,6 +194,32 @@ const Library = () => {
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   const handleAddToPlaylist = () => {
+    if (showNewPlaylistInput && newPlaylistName.trim()) {
+      // Criar nova playlist
+      const newPlaylist = {
+        id: uuidv4(),
+        name: newPlaylistName.trim(),
+        description: "",
+        musicIds: [selectedMusicId],
+        dateCreated: new Date(),
+        dateModified: new Date()
+      };
+      
+      const updatedPlaylists = [...playlists, newPlaylist];
+      localStorage.setItem("playlists", JSON.stringify(updatedPlaylists));
+      setPlaylists(updatedPlaylists);
+      
+      toast({
+        title: "Playlist criada",
+        description: `"${newPlaylistName}" foi criada com a música selecionada`,
+      });
+      
+      setNewPlaylistName("");
+      setShowNewPlaylistInput(false);
+      setShowAddToPlaylist(false);
+      return;
+    }
+  
     if (!selectedPlaylist || !selectedMusicId) return;
 
     // Find the selected playlist
@@ -209,8 +263,7 @@ const Library = () => {
   };
 
   const handleNewPlaylist = () => {
-    navigate("/playlists", { state: { openDialog: true, musicId: selectedMusicId } });
-    setShowAddToPlaylist(false);
+    setShowNewPlaylistInput(true);
   };
 
   return (
@@ -398,48 +451,82 @@ const Library = () => {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            {playlists.length > 0 ? (
+            {showNewPlaylistInput ? (
               <div className="space-y-2">
-                {playlists.map((playlist) => (
-                  <div key={playlist.id} className="flex items-center space-x-2">
-                    <input 
-                      type="radio" 
-                      id={playlist.id} 
-                      name="playlist" 
-                      value={playlist.id}
-                      checked={selectedPlaylist === playlist.id}
-                      onChange={(e) => setSelectedPlaylist(e.target.value)}
-                      className="h-4 w-4"
-                    />
-                    <label htmlFor={playlist.id} className="text-sm font-medium">
-                      {playlist.name}
-                    </label>
-                  </div>
-                ))}
+                <Label htmlFor="newPlaylist">Nome da nova playlist</Label>
+                <Input
+                  id="newPlaylist"
+                  value={newPlaylistName}
+                  onChange={(e) => setNewPlaylistName(e.target.value)}
+                  placeholder="Digite o nome da playlist..."
+                  autoFocus
+                />
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">
-                Você ainda não tem playlists. Crie uma playlist primeiro.
-              </p>
+              <>
+                {playlists.length > 0 ? (
+                  <div className="space-y-2">
+                    {playlists.map((playlist) => (
+                      <div key={playlist.id} className="flex items-center space-x-2">
+                        <input 
+                          type="radio" 
+                          id={playlist.id} 
+                          name="playlist" 
+                          value={playlist.id}
+                          checked={selectedPlaylist === playlist.id}
+                          onChange={(e) => setSelectedPlaylist(e.target.value)}
+                          className="h-4 w-4"
+                        />
+                        <label htmlFor={playlist.id} className="text-sm font-medium">
+                          {playlist.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm">
+                    Você ainda não tem playlists. Crie uma playlist primeiro.
+                  </p>
+                )}
+              </>
             )}
           </div>
           
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleNewPlaylist}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Criar Nova Playlist
-            </Button>
-            
-            {playlists.length > 0 && (
-              <Button 
-                onClick={handleAddToPlaylist} 
-                disabled={!selectedPlaylist}
-              >
-                Adicionar
-              </Button>
+            {showNewPlaylistInput ? (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowNewPlaylistInput(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleAddToPlaylist} 
+                  disabled={!newPlaylistName.trim()}
+                >
+                  Criar e Adicionar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={handleNewPlaylist}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Nova Playlist
+                </Button>
+                
+                {playlists.length > 0 && (
+                  <Button 
+                    onClick={handleAddToPlaylist} 
+                    disabled={!selectedPlaylist}
+                  >
+                    Adicionar
+                  </Button>
+                )}
+              </>
             )}
           </DialogFooter>
         </DialogContent>

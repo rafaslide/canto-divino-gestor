@@ -14,15 +14,19 @@ import {
 } from "@/components/ui/select";
 import { PlusCircle, Upload, Music } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { v4 as uuidv4 } from "uuid";
+import { useNavigate } from "react-router-dom";
 
 const Import = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [key, setKey] = useState("");
   const [tempo, setTempo] = useState("");
   const [lyrics, setLyrics] = useState("");
   const [liturgicalMoment, setLiturgicalMoment] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Musical key options
   const keyOptions = [
@@ -58,15 +62,26 @@ const Import = () => {
       return;
     }
 
-    // In a real app, this would save the music to the database
-    console.log("Importing new music:", {
+    // Create new music object
+    const newMusic = {
+      id: uuidv4(),
       title,
-      author,
-      key,
-      tempo,
+      author: author || undefined,
+      key: key || undefined,
+      tempo: tempo || undefined,
       liturgicalMoment: liturgicalMoment ? [liturgicalMoment] : [],
       lyrics,
-    });
+      dateAdded: new Date(),
+      favorite: false,
+    };
+
+    // Save to localStorage
+    const savedMusic = localStorage.getItem("userMusic");
+    const musicList = savedMusic ? JSON.parse(savedMusic) : [];
+    musicList.push(newMusic);
+    localStorage.setItem("userMusic", JSON.stringify(musicList));
+
+    console.log("Importing new music:", newMusic);
 
     toast({
       title: "Música Importada",
@@ -80,6 +95,74 @@ const Import = () => {
     setTempo("");
     setLyrics("");
     setLiturgicalMoment("");
+    setSelectedFile(null);
+    
+    // Navigate to library
+    navigate("/library");
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+      readFileContent(e.target.files[0]);
+    }
+  };
+
+  const readFileContent = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (typeof e.target?.result === 'string') {
+        // Tentar analisar o conteúdo do arquivo
+        try {
+          // Se for um arquivo JSON
+          if (file.name.endsWith('.json')) {
+            const content = JSON.parse(e.target.result);
+            if (content.title) setTitle(content.title);
+            if (content.author) setAuthor(content.author);
+            if (content.key) setKey(content.key);
+            if (content.tempo) setTempo(content.tempo);
+            if (content.lyrics) setLyrics(content.lyrics);
+            if (content.liturgicalMoment && content.liturgicalMoment[0]) 
+              setLiturgicalMoment(content.liturgicalMoment[0]);
+          } else {
+            // Se for um arquivo de texto, consideramos como letra
+            setLyrics(e.target.result);
+          }
+          
+          toast({
+            title: "Arquivo Carregado",
+            description: "Conteúdo do arquivo importado com sucesso.",
+          });
+        } catch (error) {
+          // Se não conseguir analisar como JSON, considere como texto
+          setLyrics(e.target.result);
+        }
+      }
+    };
+    
+    reader.onerror = () => {
+      toast({
+        title: "Erro",
+        description: "Não foi possível ler o arquivo.",
+        variant: "destructive",
+      });
+    };
+    
+    if (file.type === "application/json") {
+      reader.readAsText(file);
+    } else if (file.type === "text/plain" || file.name.endsWith('.txt')) {
+      reader.readAsText(file);
+    } else {
+      toast({
+        title: "Formato não suportado",
+        description: "Por favor, selecione um arquivo .txt ou .json",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUploadClick = () => {
+    document.getElementById('file-upload')?.click();
   };
 
   return (
@@ -194,14 +277,24 @@ const Import = () => {
               </div>
             </div>
 
+            {/* Input de arquivo escondido */}
+            <input
+              type="file"
+              id="file-upload"
+              accept=".txt,.json"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
             <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-end">
               <Button
                 type="button"
                 variant="outline"
                 className="w-full sm:w-auto"
+                onClick={handleUploadClick}
               >
                 <Upload className="h-4 w-4 mr-2" />
-                Importar Arquivo
+                {selectedFile ? selectedFile.name : "Importar Arquivo"}
               </Button>
               <Button
                 type="submit"
