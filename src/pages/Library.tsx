@@ -33,6 +33,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const Library = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,6 +53,8 @@ const Library = () => {
   const [selectedPlaylist, setSelectedPlaylist] = useState<string>("");
   const [selectedMusicId, setSelectedMusicId] = useState<string>("");
   const [showAddToPlaylist, setShowAddToPlaylist] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -77,11 +88,13 @@ const Library = () => {
   const handleSearch = (term: string) => {
     setSearchTerm(term);
     applyFilters(term, selectedMoment);
+    setCurrentPage(1); // Reset to first page on new search
   };
 
   const handleMomentFilter = (moment: string) => {
     setSelectedMoment(moment);
     applyFilters(searchTerm, moment);
+    setCurrentPage(1); // Reset to first page on new filter
   };
 
   const applyFilters = (term: string, moment: string) => {
@@ -112,11 +125,7 @@ const Library = () => {
     setSearchTerm("");
     setSelectedMoment("");
     setFilteredMusic(mockMusic);
-  };
-
-  const handleFavoriteToggle = (id: string, favorite: boolean) => {
-    // In a real app, this would update the database
-    console.log(`Toggle favorite for music ${id}: ${favorite}`);
+    setCurrentPage(1);
   };
   
   const handleSort = (field: string) => {
@@ -128,6 +137,10 @@ const Library = () => {
     }
   };
 
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  
   const sortedMusic = [...filteredMusic].sort((a, b) => {
     let aValue: any = a[sortField as keyof Music];
     let bValue: any = b[sortField as keyof Music];
@@ -146,6 +159,11 @@ const Library = () => {
     // For number or date comparison
     return sortDirection === "asc" ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
   });
+
+  const currentItems = sortedMusic.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sortedMusic.length / itemsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   const handleAddToPlaylist = () => {
     if (!selectedPlaylist || !selectedMusicId) return;
@@ -188,6 +206,11 @@ const Library = () => {
     if (playlistId) {
       navigate(`/playlists/${playlistId}`);
     }
+  };
+
+  const handleNewPlaylist = () => {
+    navigate("/playlists", { state: { openDialog: true, musicId: selectedMusicId } });
+    setShowAddToPlaylist(false);
   };
 
   return (
@@ -237,71 +260,123 @@ const Library = () => {
         </div>
 
         {filteredMusic.length > 0 ? (
-          <div className="border rounded-md overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead 
-                    className="w-[400px] cursor-pointer"
-                    onClick={() => handleSort("title")}
-                  >
-                    <div className="flex items-center">
-                      Título
-                      {sortField === "title" && (
-                        sortDirection === "asc" ? <MoveUp className="ml-1 h-4 w-4" /> : <MoveDown className="ml-1 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead 
-                    className="cursor-pointer"
-                    onClick={() => handleSort("author")}
-                  >
-                    <div className="flex items-center">
-                      Autor
-                      {sortField === "author" && (
-                        sortDirection === "asc" ? <MoveUp className="ml-1 h-4 w-4" /> : <MoveDown className="ml-1 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead>Momento Litúrgico</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedMusic.map((music) => (
-                  <TableRow key={music.id}>
-                    <TableCell className="font-medium">{music.title}</TableCell>
-                    <TableCell>{music.author || "-"}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {music.liturgicalMoment?.map((moment) => (
-                          <Badge key={moment} variant="outline" className="bg-liturgy-50 text-liturgy-900">
-                            {moment}
-                          </Badge>
-                        ))}
+          <>
+            <div className="border rounded-md overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead 
+                      className="w-[400px] cursor-pointer"
+                      onClick={() => handleSort("title")}
+                    >
+                      <div className="flex items-center">
+                        Título
+                        {sortField === "title" && (
+                          sortDirection === "asc" ? <MoveUp className="ml-1 h-4 w-4" /> : <MoveDown className="ml-1 h-4 w-4" />
+                        )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => {
-                          setSelectedMusicId(music.id);
-                          setShowAddToPlaylist(true);
-                        }}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Adicionar à Playlist
-                      </Button>
-                      <Button asChild size="sm" variant="ghost">
-                        <Link to={`/music/${music.id}`}>Ver detalhes</Link>
-                      </Button>
-                    </TableCell>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer"
+                      onClick={() => handleSort("author")}
+                    >
+                      <div className="flex items-center">
+                        Autor
+                        {sortField === "author" && (
+                          sortDirection === "asc" ? <MoveUp className="ml-1 h-4 w-4" /> : <MoveDown className="ml-1 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead>Momento Litúrgico</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {currentItems.map((music) => (
+                    <TableRow key={music.id}>
+                      <TableCell className="font-medium">{music.title}</TableCell>
+                      <TableCell>{music.author || "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {music.liturgicalMoment?.map((moment) => (
+                            <Badge key={moment} variant="outline" className="bg-liturgy-50 text-liturgy-900">
+                              {moment}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => {
+                            setSelectedMusicId(music.id);
+                            setShowAddToPlaylist(true);
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Adicionar à Playlist
+                        </Button>
+                        <Button asChild size="sm" variant="ghost">
+                          <Link to={`/music/${music.id}`}>Ver detalhes</Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <Pagination className="mt-4">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => currentPage > 1 && paginate(currentPage - 1)} 
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
+                    // Show first page, last page, current page and one page before/after current
+                    let pageToShow: number | null = null;
+                    
+                    if (i === 0) pageToShow = 1;
+                    else if (i === 1 && currentPage > 3) pageToShow = null; // ellipsis
+                    else if (i === Math.min(totalPages, 5) - 1) pageToShow = totalPages;
+                    else if (i === Math.min(totalPages, 5) - 2 && currentPage < totalPages - 2) pageToShow = null; // ellipsis
+                    else if (totalPages <= 5) pageToShow = i + 1;
+                    else if (currentPage <= 3) pageToShow = i + 1;
+                    else if (currentPage >= totalPages - 2) pageToShow = totalPages - (Math.min(totalPages, 5) - 1 - i);
+                    else pageToShow = currentPage + (i - 2);
+                    
+                    return (
+                      <PaginationItem key={i}>
+                        {pageToShow === null ? (
+                          <PaginationEllipsis />
+                        ) : (
+                          <PaginationLink
+                            isActive={pageToShow === currentPage}
+                            onClick={() => paginate(pageToShow as number)}
+                          >
+                            {pageToShow}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    );
+                  })}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => currentPage < totalPages && paginate(currentPage + 1)}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </>
         ) : (
           <div className="col-span-3 text-center py-12">
             <h3 className="text-xl font-medium">Nenhuma música encontrada</h3>
@@ -323,46 +398,47 @@ const Library = () => {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              {playlists.map((playlist) => (
-                <div key={playlist.id} className="flex items-center space-x-2">
-                  <input 
-                    type="radio" 
-                    id={playlist.id} 
-                    name="playlist" 
-                    value={playlist.id}
-                    checked={selectedPlaylist === playlist.id}
-                    onChange={(e) => setSelectedPlaylist(e.target.value)}
-                    className="h-4 w-4"
-                  />
-                  <label htmlFor={playlist.id} className="text-sm font-medium">
-                    {playlist.name}
-                  </label>
-                </div>
-              ))}
-              
-              {playlists.length === 0 && (
-                <p className="text-muted-foreground text-sm">
-                  Você ainda não tem playlists. Crie uma playlist primeiro.
-                </p>
-              )}
-            </div>
+            {playlists.length > 0 ? (
+              <div className="space-y-2">
+                {playlists.map((playlist) => (
+                  <div key={playlist.id} className="flex items-center space-x-2">
+                    <input 
+                      type="radio" 
+                      id={playlist.id} 
+                      name="playlist" 
+                      value={playlist.id}
+                      checked={selectedPlaylist === playlist.id}
+                      onChange={(e) => setSelectedPlaylist(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <label htmlFor={playlist.id} className="text-sm font-medium">
+                      {playlist.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                Você ainda não tem playlists. Crie uma playlist primeiro.
+              </p>
+            )}
           </div>
           
-          <DialogFooter>
-            {playlists.length > 0 ? (
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleNewPlaylist}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Criar Nova Playlist
+            </Button>
+            
+            {playlists.length > 0 && (
               <Button 
                 onClick={handleAddToPlaylist} 
                 disabled={!selectedPlaylist}
               >
                 Adicionar
-              </Button>
-            ) : (
-              <Button asChild>
-                <Link to="/playlists">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Playlist
-                </Link>
               </Button>
             )}
           </DialogFooter>

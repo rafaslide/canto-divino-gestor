@@ -26,8 +26,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { format } from "date-fns";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const Playlists = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,7 +46,10 @@ const Playlists = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [sortField, setSortField] = useState<string>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const { toast } = useToast();
+  const location = useLocation();
 
   // Load playlists from localStorage on component mount
   useEffect(() => {
@@ -45,7 +57,17 @@ const Playlists = () => {
     if (savedPlaylists) {
       setPlaylists(JSON.parse(savedPlaylists));
     }
-  }, []);
+    
+    // Check if we should open the dialog (coming from Library)
+    if (location.state?.openDialog) {
+      setIsDialogOpen(true);
+      
+      // If we have a musicId, store it for later
+      if (location.state.musicId) {
+        localStorage.setItem("pendingMusicId", location.state.musicId);
+      }
+    }
+  }, [location]);
 
   // Filter playlists based on search term
   const filteredPlaylists = playlists.filter((playlist) =>
@@ -61,6 +83,13 @@ const Playlists = () => {
       dateCreated: new Date(),
       dateModified: new Date(),
     };
+    
+    // Check if there's a pending music to add
+    const pendingMusicId = localStorage.getItem("pendingMusicId");
+    if (pendingMusicId) {
+      newPlaylist.musicIds.push(pendingMusicId);
+      localStorage.removeItem("pendingMusicId");
+    }
     
     // Add new playlist to state
     const updatedPlaylists = [...playlists, newPlaylist];
@@ -79,6 +108,14 @@ const Playlists = () => {
     setNewPlaylistName("");
     setNewPlaylistDescription("");
     setIsDialogOpen(false);
+    
+    // If we created this playlist with a pending music, navigate to the playlist
+    if (pendingMusicId) {
+      toast({
+        title: "Música adicionada",
+        description: "A música foi adicionada à nova playlist.",
+      });
+    }
   };
   
   const handleSort = (field: string) => {
@@ -90,6 +127,10 @@ const Playlists = () => {
     }
   };
 
+  // Pagination
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  
   const sortedPlaylists = [...filteredPlaylists].sort((a, b) => {
     let aValue: any = a[sortField as keyof Playlist];
     let bValue: any = b[sortField as keyof Playlist];
@@ -114,6 +155,11 @@ const Playlists = () => {
     // For number or date comparison
     return sortDirection === "asc" ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
   });
+
+  const currentItems = sortedPlaylists.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sortedPlaylists.length / itemsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   return (
     <Layout>
@@ -177,71 +223,123 @@ const Playlists = () => {
         </div>
 
         {filteredPlaylists.length > 0 ? (
-          <div className="border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead 
-                    className="w-[300px] cursor-pointer"
-                    onClick={() => handleSort("name")}
-                  >
-                    <div className="flex items-center">
-                      Nome
-                      {sortField === "name" && (
-                        sortDirection === "asc" ? <MoveUp className="ml-1 h-4 w-4" /> : <MoveDown className="ml-1 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead 
-                    className="cursor-pointer"
-                    onClick={() => handleSort("dateModified")}
-                  >
-                    <div className="flex items-center">
-                      Última atualização
-                      {sortField === "dateModified" && (
-                        sortDirection === "asc" ? <MoveUp className="ml-1 h-4 w-4" /> : <MoveDown className="ml-1 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-center">Músicas</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedPlaylists.map((playlist) => (
-                  <TableRow key={playlist.id}>
-                    <TableCell className="font-medium">
+          <>
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead 
+                      className="w-[300px] cursor-pointer"
+                      onClick={() => handleSort("name")}
+                    >
                       <div className="flex items-center">
-                        <ListMusic className="h-4 w-4 mr-2 text-liturgy-600" />
-                        {playlist.name}
+                        Nome
+                        {sortField === "name" && (
+                          sortDirection === "asc" ? <MoveUp className="ml-1 h-4 w-4" /> : <MoveDown className="ml-1 h-4 w-4" />
+                        )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {playlist.description || "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        {format(new Date(playlist.dateModified), "dd/MM/yyyy")}
+                    </TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead 
+                      className="cursor-pointer"
+                      onClick={() => handleSort("dateModified")}
+                    >
+                      <div className="flex items-center">
+                        Última atualização
+                        {sortField === "dateModified" && (
+                          sortDirection === "asc" ? <MoveUp className="ml-1 h-4 w-4" /> : <MoveDown className="ml-1 h-4 w-4" />
+                        )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {playlist.musicIds.length}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button asChild size="sm">
-                        <Link to={`/playlists/${playlist.id}`}>
-                          <ListMusic className="h-4 w-4 mr-1" />
-                          Ver Playlist
-                        </Link>
-                      </Button>
-                    </TableCell>
+                    </TableHead>
+                    <TableHead className="text-center">Músicas</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {currentItems.map((playlist) => (
+                    <TableRow key={playlist.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center">
+                          <ListMusic className="h-4 w-4 mr-2 text-liturgy-600" />
+                          {playlist.name}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {playlist.description || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          {format(new Date(playlist.dateModified), "dd/MM/yyyy")}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {playlist.musicIds.length}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild size="sm">
+                          <Link to={`/playlists/${playlist.id}`}>
+                            <ListMusic className="h-4 w-4 mr-1" />
+                            Ver Playlist
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <Pagination className="mt-4">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => currentPage > 1 && paginate(currentPage - 1)} 
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
+                    // Show first page, last page, current page and one page before/after current
+                    let pageToShow: number | null = null;
+                    
+                    if (i === 0) pageToShow = 1;
+                    else if (i === 1 && currentPage > 3) pageToShow = null; // ellipsis
+                    else if (i === Math.min(totalPages, 5) - 1) pageToShow = totalPages;
+                    else if (i === Math.min(totalPages, 5) - 2 && currentPage < totalPages - 2) pageToShow = null; // ellipsis
+                    else if (totalPages <= 5) pageToShow = i + 1;
+                    else if (currentPage <= 3) pageToShow = i + 1;
+                    else if (currentPage >= totalPages - 2) pageToShow = totalPages - (Math.min(totalPages, 5) - 1 - i);
+                    else pageToShow = currentPage + (i - 2);
+                    
+                    return (
+                      <PaginationItem key={i}>
+                        {pageToShow === null ? (
+                          <PaginationEllipsis />
+                        ) : (
+                          <PaginationLink
+                            isActive={pageToShow === currentPage}
+                            onClick={() => paginate(pageToShow as number)}
+                          >
+                            {pageToShow}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    );
+                  })}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => currentPage < totalPages && paginate(currentPage + 1)}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </>
         ) : (
           <div className="col-span-3 text-center py-12">
             <ListMusic className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

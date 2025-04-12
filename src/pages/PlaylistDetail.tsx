@@ -15,6 +15,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const PlaylistDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +31,8 @@ const PlaylistDetail = () => {
   const [playlistMusic, setPlaylistMusic] = useState<Music[]>([]);
   const [sortField, setSortField] = useState<string>("title");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   
   useEffect(() => {
     if (id) {
@@ -42,6 +53,10 @@ const PlaylistDetail = () => {
     }
   };
 
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+
   const sortedMusic = [...playlistMusic].sort((a, b) => {
     let aValue: any = a[sortField as keyof Music];
     let bValue: any = b[sortField as keyof Music];
@@ -60,6 +75,11 @@ const PlaylistDetail = () => {
     // For number or date comparison
     return sortDirection === "asc" ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
   });
+
+  const currentItems = sortedMusic.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sortedMusic.length / itemsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   if (!playlist) {
     return (
@@ -102,7 +122,7 @@ const PlaylistDetail = () => {
             </div>
             
             <Button asChild className="bg-liturgy-700 hover:bg-liturgy-800">
-              <Link to="/library?selectForPlaylist=${playlist.id}" className="flex items-center">
+              <Link to="/library" className="flex items-center">
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar Músicas
               </Link>
@@ -117,60 +137,112 @@ const PlaylistDetail = () => {
           </h2>
 
           {playlistMusic.length > 0 ? (
-            <div className="border rounded-md">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead 
-                      className="w-[400px] cursor-pointer"
-                      onClick={() => handleSort("title")}
-                    >
-                      <div className="flex items-center">
-                        Título
-                        {sortField === "title" && (
-                          sortDirection === "asc" ? <MoveUp className="ml-1 h-4 w-4" /> : <MoveDown className="ml-1 h-4 w-4" />
-                        )}
-                      </div>
-                    </TableHead>
-                    <TableHead 
-                      className="cursor-pointer"
-                      onClick={() => handleSort("author")}
-                    >
-                      <div className="flex items-center">
-                        Autor
-                        {sortField === "author" && (
-                          sortDirection === "asc" ? <MoveUp className="ml-1 h-4 w-4" /> : <MoveDown className="ml-1 h-4 w-4" />
-                        )}
-                      </div>
-                    </TableHead>
-                    <TableHead>Momento Litúrgico</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedMusic.map((music) => (
-                    <TableRow key={music.id}>
-                      <TableCell className="font-medium">{music.title}</TableCell>
-                      <TableCell>{music.author || "-"}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {music.liturgicalMoment?.map((moment) => (
-                            <Badge key={moment} variant="outline" className="bg-liturgy-50 text-liturgy-900">
-                              {moment}
-                            </Badge>
-                          ))}
+            <>
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead 
+                        className="w-[400px] cursor-pointer"
+                        onClick={() => handleSort("title")}
+                      >
+                        <div className="flex items-center">
+                          Título
+                          {sortField === "title" && (
+                            sortDirection === "asc" ? <MoveUp className="ml-1 h-4 w-4" /> : <MoveDown className="ml-1 h-4 w-4" />
+                          )}
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button asChild size="sm" variant="ghost">
-                          <Link to={`/music/${music.id}`}>Ver detalhes</Link>
-                        </Button>
-                      </TableCell>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer"
+                        onClick={() => handleSort("author")}
+                      >
+                        <div className="flex items-center">
+                          Autor
+                          {sortField === "author" && (
+                            sortDirection === "asc" ? <MoveUp className="ml-1 h-4 w-4" /> : <MoveDown className="ml-1 h-4 w-4" />
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead>Momento Litúrgico</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {currentItems.map((music) => (
+                      <TableRow key={music.id}>
+                        <TableCell className="font-medium">{music.title}</TableCell>
+                        <TableCell>{music.author || "-"}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {music.liturgicalMoment?.map((moment) => (
+                              <Badge key={moment} variant="outline" className="bg-liturgy-50 text-liturgy-900">
+                                {moment}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button asChild size="sm" variant="ghost">
+                            <Link to={`/music/${music.id}`}>Ver detalhes</Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Pagination className="mt-4">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => currentPage > 1 && paginate(currentPage - 1)} 
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
+                      // Show first page, last page, current page and one page before/after current
+                      let pageToShow: number | null = null;
+                      
+                      if (i === 0) pageToShow = 1;
+                      else if (i === 1 && currentPage > 3) pageToShow = null; // ellipsis
+                      else if (i === Math.min(totalPages, 5) - 1) pageToShow = totalPages;
+                      else if (i === Math.min(totalPages, 5) - 2 && currentPage < totalPages - 2) pageToShow = null; // ellipsis
+                      else if (totalPages <= 5) pageToShow = i + 1;
+                      else if (currentPage <= 3) pageToShow = i + 1;
+                      else if (currentPage >= totalPages - 2) pageToShow = totalPages - (Math.min(totalPages, 5) - 1 - i);
+                      else pageToShow = currentPage + (i - 2);
+                      
+                      return (
+                        <PaginationItem key={i}>
+                          {pageToShow === null ? (
+                            <PaginationEllipsis />
+                          ) : (
+                            <PaginationLink
+                              isActive={pageToShow === currentPage}
+                              onClick={() => paginate(pageToShow as number)}
+                            >
+                              {pageToShow}
+                            </PaginationLink>
+                          )}
+                        </PaginationItem>
+                      );
+                    })}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => currentPage < totalPages && paginate(currentPage + 1)}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </>
           ) : (
             <div className="text-center py-8 border border-dashed rounded-md">
               <ListMusic className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
@@ -179,7 +251,10 @@ const PlaylistDetail = () => {
                 Adicione músicas a esta playlist na página de biblioteca.
               </p>
               <Button asChild className="mt-4">
-                <Link to="/library">Ir para Biblioteca</Link>
+                <Link to="/library">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Músicas
+                </Link>
               </Button>
             </div>
           )}
