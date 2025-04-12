@@ -1,10 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import PlaylistCard from "@/components/PlaylistCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { mockPlaylists } from "@/lib/data";
+import { Playlist } from "@/lib/types";
 import { ListMusic, Plus, Search } from "lucide-react";
 import {
   Dialog,
@@ -17,23 +17,51 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { v4 as uuidv4 } from "uuid";
 
 const Playlists = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [newPlaylistDescription, setNewPlaylistDescription] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const { toast } = useToast();
+
+  // Load playlists from localStorage on component mount
+  useEffect(() => {
+    const savedPlaylists = localStorage.getItem("playlists");
+    if (savedPlaylists) {
+      setPlaylists(JSON.parse(savedPlaylists));
+    }
+  }, []);
 
   // Filter playlists based on search term
-  const filteredPlaylists = mockPlaylists.filter((playlist) =>
+  const filteredPlaylists = playlists.filter((playlist) =>
     playlist.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleCreatePlaylist = () => {
-    // In a real app, this would create a new playlist
-    console.log("Creating new playlist:", {
+    const newPlaylist: Playlist = {
+      id: uuidv4(),
       name: newPlaylistName,
       description: newPlaylistDescription,
+      musicIds: [],
+      dateCreated: new Date(),
+      dateModified: new Date(),
+    };
+    
+    // Add new playlist to state
+    const updatedPlaylists = [...playlists, newPlaylist];
+    setPlaylists(updatedPlaylists);
+    
+    // Save to localStorage
+    localStorage.setItem("playlists", JSON.stringify(updatedPlaylists));
+    
+    // Display success message
+    toast({
+      title: "Playlist criada",
+      description: `A playlist "${newPlaylistName}" foi criada com sucesso.`,
     });
     
     // Reset form and close dialog

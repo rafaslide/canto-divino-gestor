@@ -9,6 +9,7 @@ import Library from "./pages/Library";
 import Playlists from "./pages/Playlists";
 import Import from "./pages/Import";
 import MusicDetail from "./pages/MusicDetail";
+import PlaylistDetail from "./pages/PlaylistDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/library" element={<Library />} />
           <Route path="/playlists" element={<Playlists />} />
+          <Route path="/playlists/:id" element={<PlaylistDetail />} />
           <Route path="/import" element={<Import />} />
           <Route path="/music/:id" element={<MusicDetail />} />
           <Route path="*" element={<NotFound />} />

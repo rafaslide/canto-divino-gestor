@@ -76,33 +76,6 @@ export const mockMusic: Music[] = [
   },
 ];
 
-export const mockPlaylists: Playlist[] = [
-  {
-    id: "1",
-    name: "Sunday Mass",
-    description: "Songs for the regular Sunday mass",
-    musicIds: ["1", "2", "5"],
-    dateCreated: new Date("2023-02-01"),
-    dateModified: new Date("2023-02-10"),
-  },
-  {
-    id: "2",
-    name: "Marian Devotion",
-    description: "Songs dedicated to the Virgin Mary",
-    musicIds: ["1", "4"],
-    dateCreated: new Date("2023-02-05"),
-    dateModified: new Date("2023-02-05"),
-  },
-  {
-    id: "3",
-    name: "Holy Week",
-    description: "Songs for the Holy Week celebrations",
-    musicIds: ["3", "5", "6"],
-    dateCreated: new Date("2023-03-01"),
-    dateModified: new Date("2023-03-15"),
-  },
-];
-
 // Helper function to get music by ID
 export const getMusicById = (id: string): Music | undefined => {
   return mockMusic.find((music) => music.id === id);
@@ -113,7 +86,12 @@ export const getMusicByIds = (ids: string[]): Music[] => {
   return mockMusic.filter((music) => ids.includes(music.id));
 };
 
-// Helper function to get playlist by ID
+// Helper function to get playlist by ID from localStorage
 export const getPlaylistById = (id: string): Playlist | undefined => {
-  return mockPlaylists.find((playlist) => playlist.id === id);
+  const savedPlaylists = localStorage.getItem("playlists");
+  if (savedPlaylists) {
+    const playlists: Playlist[] = JSON.parse(savedPlaylists);
+    return playlists.find((playlist) => playlist.id === id);
+  }
+  return undefined;
 };
