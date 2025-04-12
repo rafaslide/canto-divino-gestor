@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import { 
   Heart, 
   ArrowLeft, 
-  Music, 
+  Music as MusicIcon, 
   Clock, 
   Tag,
   ListMusic,
   Plus
 } from "lucide-react";
 import { getMusicById } from "@/lib/data";
-import { Music } from "@/lib/types";
+import { Music as MusicType } from "@/lib/types";
 import { 
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const MusicDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [music, setMusic] = useState<Music | null>(null);
+  const [music, setMusic] = useState<MusicType | null>(null);
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState<string>("");
   const { toast } = useToast();
@@ -135,7 +135,7 @@ const MusicDetail = () => {
           <div className="lg:col-span-2 space-y-6">
             <div className="border p-4 rounded-md">
               <h2 className="text-xl font-medium mb-3 flex items-center">
-                <Music className="mr-2 h-5 w-5" />
+                <MusicIcon className="mr-2 h-5 w-5" />
                 Letra
               </h2>
               <div className="whitespace-pre-line">
@@ -159,7 +159,7 @@ const MusicDetail = () => {
               <div className="space-y-4">
                 {music.key && (
                   <div className="flex items-start">
-                    <Music className="h-5 w-5 mr-2 mt-0.5 text-muted-foreground" />
+                    <MusicIcon className="h-5 w-5 mr-2 mt-0.5 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-medium">Tonalidade</p>
                       <p className="text-muted-foreground">{music.key}</p>
