@@ -12,14 +12,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PlusCircle, Upload, Music } from "lucide-react";
+import { PlusCircle, Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const Import = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [key, setKey] = useState("");
@@ -27,6 +30,7 @@ const Import = () => {
   const [lyrics, setLyrics] = useState("");
   const [liturgicalMoment, setLiturgicalMoment] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Musical key options
   const keyOptions = [
@@ -49,7 +53,7 @@ const Import = () => {
     "Meditation", "Recessional", "Marian Devotion", "Adoration"
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
@@ -62,43 +66,67 @@ const Import = () => {
       return;
     }
 
-    // Create new music object
-    const newMusic = {
-      id: uuidv4(),
-      title,
-      author: author || undefined,
-      key: key || undefined,
-      tempo: tempo || undefined,
-      liturgicalMoment: liturgicalMoment ? [liturgicalMoment] : [],
-      lyrics,
-      dateAdded: new Date(),
-      favorite: false,
-    };
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "You must be logged in to import music.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Save to localStorage
-    const savedMusic = localStorage.getItem("userMusic");
-    const musicList = savedMusic ? JSON.parse(savedMusic) : [];
-    musicList.push(newMusic);
-    localStorage.setItem("userMusic", JSON.stringify(musicList));
+    setIsSubmitting(true);
 
-    console.log("Importing new music:", newMusic);
+    try {
+      // Create new music object for Supabase
+      const newMusic = {
+        id: uuidv4(),
+        title,
+        author: author || null,
+        key: key || null,
+        tempo: tempo || null,
+        liturgical_moment: liturgicalMoment ? [liturgicalMoment] : [],
+        lyrics,
+        date_added: new Date().toISOString(),
+        favorite: false,
+        created_by: user.id
+      };
 
-    toast({
-      title: "Música Importada",
-      description: `A música "${title}" foi importada com sucesso!`,
-    });
+      // Insert directly to Supabase
+      const { error } = await supabase
+        .from('music')
+        .insert(newMusic);
 
-    // Reset form
-    setTitle("");
-    setAuthor("");
-    setKey("");
-    setTempo("");
-    setLyrics("");
-    setLiturgicalMoment("");
-    setSelectedFile(null);
-    
-    // Navigate to library
-    navigate("/library");
+      if (error) throw error;
+
+      console.log("Importing new music to Supabase:", newMusic);
+
+      toast({
+        title: "Música Importada",
+        description: `A música "${title}" foi importada com sucesso!`,
+      });
+
+      // Reset form
+      setTitle("");
+      setAuthor("");
+      setKey("");
+      setTempo("");
+      setLyrics("");
+      setLiturgicalMoment("");
+      setSelectedFile(null);
+      
+      // Navigate to library
+      navigate("/library");
+    } catch (error) {
+      console.error("Error importing music:", error);
+      toast({
+        title: "Erro ao Importar Música",
+        description: "Ocorreu um erro ao importar a música. Por favor, tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -292,6 +320,7 @@ const Import = () => {
                 variant="outline"
                 className="w-full sm:w-auto"
                 onClick={handleUploadClick}
+                disabled={isSubmitting}
               >
                 <Upload className="h-4 w-4 mr-2" />
                 {selectedFile ? selectedFile.name : "Importar Arquivo"}
@@ -299,9 +328,19 @@ const Import = () => {
               <Button
                 type="submit"
                 className="w-full sm:w-auto bg-liturgy-700 hover:bg-liturgy-800"
+                disabled={isSubmitting}
               >
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Adicionar Música
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Adicionando...
+                  </>
+                ) : (
+                  <>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Adicionar Música
+                  </>
+                )}
               </Button>
             </div>
           </form>

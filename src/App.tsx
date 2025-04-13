@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,18 +13,12 @@ import MusicDetail from "./pages/MusicDetail";
 import PlaylistDetail from "./pages/PlaylistDetail";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import { useMigration } from '@/hooks/useMigration';
 
 const queryClient = new QueryClient();
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
-  const { isMigrating } = useMigration(); // Add migration hook
-  
-  if (isMigrating) {
-    return <div>Migrating data...</div>;
-  }
   
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
