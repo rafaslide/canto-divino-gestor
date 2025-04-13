@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -43,6 +42,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { v4 as uuidv4 } from "uuid";
+import { Label } from "@/components/ui/label";
 
 const Library = () => {
   const [searchTerm, setSearchTerm] = useState("");

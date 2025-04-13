@@ -3,7 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import Index from "./pages/Index";
 import Library from "./pages/Library";
 import Playlists from "./pages/Playlists";
@@ -11,25 +12,88 @@ import Import from "./pages/Import";
 import MusicDetail from "./pages/MusicDetail";
 import PlaylistDetail from "./pages/PlaylistDetail";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
+
+// Protected route component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+const AppRoutes = () => {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route 
+        path="/" 
+        element={
+          <ProtectedRoute>
+            <Index />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/library" 
+        element={
+          <ProtectedRoute>
+            <Library />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/playlists" 
+        element={
+          <ProtectedRoute>
+            <Playlists />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/playlists/:id" 
+        element={
+          <ProtectedRoute>
+            <PlaylistDetail />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/import" 
+        element={
+          <ProtectedRoute>
+            <Import />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/music/:id" 
+        element={
+          <ProtectedRoute>
+            <MusicDetail />
+          </ProtectedRoute>
+        } 
+      />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/library" element={<Library />} />
-          <Route path="/playlists" element={<Playlists />} />
-          <Route path="/playlists/:id" element={<PlaylistDetail />} />
-          <Route path="/import" element={<Import />} />
-          <Route path="/music/:id" element={<MusicDetail />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

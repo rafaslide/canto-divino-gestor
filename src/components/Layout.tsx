@@ -27,7 +27,7 @@ const Layout = ({ children }: LayoutProps) => {
         <div className="container mx-auto flex items-center justify-between">
           <Link to="/" className="text-2xl font-serif font-bold flex items-center gap-2">
             <Music className="h-8 w-8" />
-            <span>Canto Divino</span>
+            <span>SantaMarta</span>
           </Link>
         </div>
       </header>
@@ -64,7 +64,7 @@ const Layout = ({ children }: LayoutProps) => {
 
       <footer className="bg-liturgy-900 text-white p-4 mt-auto">
         <div className="container mx-auto text-center text-sm">
-          <p>&copy; {new Date().getFullYear()} Canto Divino - Gestor de Músicas Litúrgicas</p>
+          <p>&copy; {new Date().getFullYear()} SantaMarta - Gestor de Músicas Litúrgicas</p>
         </div>
       </footer>
     </div>

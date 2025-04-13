@@ -21,3 +21,15 @@ export interface Playlist {
   dateCreated: Date;
   dateModified: Date;
 }
+
+export interface User {
+  id: string;
+  username: string;
+  password: string;
+  isAdmin: boolean;
+}
+
+export interface AppState {
+  currentUser: User | null;
+  isAuthenticated: boolean;
+}
