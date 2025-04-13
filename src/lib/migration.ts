@@ -4,6 +4,14 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const migrateLocalDataToSupabase = async () => {
   try {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
+
     // Migrate Music
     const savedMusic = localStorage.getItem("userMusic");
     const localMusic = savedMusic ? JSON.parse(savedMusic) : [];
@@ -21,7 +29,7 @@ export const migrateLocalDataToSupabase = async () => {
         chords: music.chords || null,
         date_added: music.dateAdded ? new Date(music.dateAdded).toISOString() : new Date().toISOString(),
         favorite: music.favorite || false,
-        created_by: supabase.auth.getUser().data.user?.id
+        created_by: userId
       }));
 
       const { error: musicError } = await supabase
@@ -46,7 +54,7 @@ export const migrateLocalDataToSupabase = async () => {
         music_ids: playlist.musicIds || [],
         date_created: playlist.dateCreated ? new Date(playlist.dateCreated).toISOString() : new Date().toISOString(),
         date_modified: playlist.dateModified ? new Date(playlist.dateModified).toISOString() : new Date().toISOString(),
-        created_by: supabase.auth.getUser().data.user?.id
+        created_by: userId
       }));
 
       const { error: playlistError } = await supabase

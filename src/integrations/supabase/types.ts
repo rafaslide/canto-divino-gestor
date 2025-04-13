@@ -9,13 +9,108 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      music: {
+        Row: {
+          author: string | null
+          chords: string | null
+          created_by: string | null
+          date_added: string | null
+          favorite: boolean | null
+          id: string
+          key: string | null
+          liturgical_moment: string[] | null
+          lyrics: string
+          tags: string[] | null
+          tempo: string | null
+          title: string
+        }
+        Insert: {
+          author?: string | null
+          chords?: string | null
+          created_by?: string | null
+          date_added?: string | null
+          favorite?: boolean | null
+          id?: string
+          key?: string | null
+          liturgical_moment?: string[] | null
+          lyrics: string
+          tags?: string[] | null
+          tempo?: string | null
+          title: string
+        }
+        Update: {
+          author?: string | null
+          chords?: string | null
+          created_by?: string | null
+          date_added?: string | null
+          favorite?: boolean | null
+          id?: string
+          key?: string | null
+          liturgical_moment?: string[] | null
+          lyrics?: string
+          tags?: string[] | null
+          tempo?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      playlists: {
+        Row: {
+          created_by: string | null
+          date_created: string | null
+          date_modified: string | null
+          description: string | null
+          id: string
+          music_ids: string[] | null
+          name: string
+        }
+        Insert: {
+          created_by?: string | null
+          date_created?: string | null
+          date_modified?: string | null
+          description?: string | null
+          id?: string
+          music_ids?: string[] | null
+          name: string
+        }
+        Update: {
+          created_by?: string | null
+          date_created?: string | null
+          date_modified?: string | null
+          description?: string | null
+          id?: string
+          music_ids?: string[] | null
+          name?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: { uid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

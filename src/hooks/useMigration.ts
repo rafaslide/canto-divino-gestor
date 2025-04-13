@@ -11,7 +11,11 @@ export const useMigration = () => {
 
   useEffect(() => {
     const performMigration = async () => {
-      if (isAuthenticated) {
+      // Check if migration is needed by looking for localStorage data
+      const hasLocalMusic = !!localStorage.getItem("userMusic");
+      const hasLocalPlaylists = !!localStorage.getItem("playlists");
+      
+      if (isAuthenticated && (hasLocalMusic || hasLocalPlaylists)) {
         setIsMigrating(true);
         const result = await migrateLocalDataToSupabase();
         
@@ -29,11 +33,14 @@ export const useMigration = () => {
         }
         
         setIsMigrating(false);
+      } else {
+        // If no data to migrate, don't show the migration screen
+        setIsMigrating(false);
       }
     };
 
     performMigration();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, toast]);
 
   return { isMigrating };
 };
